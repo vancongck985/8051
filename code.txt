@@ -1,0 +1,126 @@
+#include <REGX51.H>
+sbit A1 = P1^0;
+sbit A2 = P1^1;
+sbit A3 = P1^2;
+sbit A4 = P1^3;
+sbit TANG=P1^4;
+sbit GIAM=P1^5;
+unsigned char so[]={0xc0,0xf9,0xa4,0xb0,0x99,0x92,0x82,0xf8,0x80,0x90};
+unsigned long xung,i;             
+unsigned int k;
+unsigned char dem,tocdo;
+///////////////////////////////////////
+void delay(int time)	 // ham delay phuc vu quet led
+{int n;
+for(n=0;n<time;n++)
+{
+;
+}
+}
+//////////////////////////////////////
+void quetled7()				 // ham quet led 7
+{   ////////////////	   hang nghin
+         A1 = 1;
+         P2 = so[i/1000];
+		 delay(50);
+		 A1 = 0;
+		 P2=0xff;
+//////////////////////////		 hang tram
+         A2=1;
+		 P2=so[(i/100)%10];
+		 delay(50);
+		 A2=0;
+		 P2=0xff;
+/////////////////////////////////		  hang chuc
+         A3=1;
+		 P2=so[(i/10)%10];
+		 delay(50);
+		 A3=0;
+		 P2=0xff;
+////////////////////////////////		hang don vi
+         A4=1;
+		 P2=so[i%10];
+		 delay(50);
+		 A4=0;
+		 P2=0xff;
+}									
+/////////////////////////////////////
+void khoitaotimer()				   // 
+{         TMOD = 0x21;			   // timer0 che do 1
+          IE   = 0x8A;			   
+		  TH0  = 0xC3;			   // tre 50us
+		  TL0  = 0x50;
+		  ET0  = 1;
+		  TR0  = 1;
+		  TH1  = -100;
+		  TL1  = -100;
+		  ET1  = 1;
+		  TR1  = 1;
+		  
+}
+////////////////////////////
+void khoitaongatngoai()
+{         EA=0;
+          EX0=1;
+          IT0=1;
+		  EA=1;
+}
+///////////////////////////////////////////
+void isr_timer0() interrupt 1
+{         TF0=0;
+          TR0=0;
+		  quetled7();
+		  k++;
+		  TH0=0xC3;				   // gia tri nap lai
+		  TL0=0x50;
+		  if(k==20)				  // lay mau 1s
+		  {
+		   i=((xung*60)/32);	// vong/phut encoder dung loai 32x 
+		   k=0;
+		   xung=0;
+		   }
+		   TR0=1;
+}
+/////////////////////////////////////////
+void isr_timer1() interrupt 3
+{          TF1=0;
+           TR1=0;
+           dem++;
+           if(dem>100)
+           dem=0;
+           if(dem<tocdo)
+           P1_6=1;
+           else
+           P1_6=0;
+           TR1=1;
+}
+///////////////////////        phim nhan
+void phimnhan()
+{
+//////////////////////////
+          if((TANG==0)&&(GIAM==1))
+		  {
+		  while(!TANG);
+          tocdo=tocdo+10;
+          if(tocdo==110)tocdo=100;
+		   }
+////////////////////////////////
+          if((GIAM==0)&&(TANG==1))
+		  {while(!GIAM);
+          tocdo=tocdo-10;
+          if(tocdo==-10)tocdo=0;
+}		  
+}
+///////////////////////////////////				ham ngat ngoai
+void isr_ex0() interrupt 0
+{           
+xung++;
+}
+////////////////////////////////////// ham chinh
+void main()
+{P1_6=1;
+khoitaotimer();
+khoitaongatngoai();
+while(1)
+{phimnhan();
+}
